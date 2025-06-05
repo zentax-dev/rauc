@@ -54,6 +54,8 @@ typedef struct {
 	gboolean efi_use_bootnext;
 	/** prevent fallback after successfully booting into primary slot */
 	gboolean prevent_late_fallback;
+	/** improved late fallback function */
+	gboolean lock_good_slot;
 	/* maximum filesize to download in bytes */
 	guint64 max_bundle_download_size;
 	/* maximum signature/CMS size in bytes */
