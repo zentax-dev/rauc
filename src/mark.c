@@ -6,7 +6,7 @@
 #include "slot.h"
 #include "status_file.h"
 
-static GList* get_slots_by_identifier(const gchar *identifier, GError **error)
+static GList *get_slots_by_identifier(const gchar *identifier, GError **error)
 {
 	GHashTableIter iter;
 	GList *slots = NULL;
@@ -15,7 +15,7 @@ static GList* get_slots_by_identifier(const gchar *identifier, GError **error)
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &booted)) {
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&booted)) {
 		if (booted->state == ST_BOOTED)
 			break;
 		booted = NULL;
@@ -30,11 +30,11 @@ static GList* get_slots_by_identifier(const gchar *identifier, GError **error)
 					R_SLOT_ERROR,
 					R_SLOT_ERROR_NO_SLOT_WITH_STATE_BOOTED,
 					"Did not find booted slot");
-	} else if (g_strcmp0(identifier, "other") == 0) {
+	} else if (g_strcmp0(identifier, "other") == 0)	{
 		if (booted) {
 			g_hash_table_iter_init(&iter, r_context()->config->slots);
 			RaucSlot *slot = NULL;
-			while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
+			while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&slot)) {
 				if (slot->sclass == booted->sclass && !slot->parent && slot->bootname && slot != booted) {
 					slots = g_list_append(slots, slot);
 				}
@@ -55,7 +55,7 @@ static GList* get_slots_by_identifier(const gchar *identifier, GError **error)
 		g_auto(GStrv) groupsplit = g_strsplit(identifier, ".", -1);
 
 		if (g_strv_length(groupsplit) == 2) {
-			RaucSlot *slot = (RaucSlot*) g_hash_table_lookup(r_context()->config->slots, identifier);
+			RaucSlot *slot = (RaucSlot *)g_hash_table_lookup(r_context()->config->slots, identifier);
 			if (!slot) {
 				g_set_error(error,
 						R_SLOT_ERROR,
@@ -86,8 +86,8 @@ static GList* get_slots_by_identifier(const gchar *identifier, GError **error)
 }
 
 #define MESSAGE_ID_MARKED_ACTIVE "8b5e7435e1054d86858278e7544fe6da"
-#define MESSAGE_ID_MARKED_GOOD   "3304e15a7a9a447885eb208ba7ae3a05"
-#define MESSAGE_ID_MARKED_BAD    "ccb0e584a47043d7a5316994bce77ae5"
+#define MESSAGE_ID_MARKED_GOOD "3304e15a7a9a447885eb208ba7ae3a05"
+#define MESSAGE_ID_MARKED_BAD "ccb0e584a47043d7a5316994bce77ae5"
 
 static void r_event_log_mark_active(RaucSlot *slot)
 {
@@ -99,8 +99,7 @@ static void r_event_log_mark_active(RaucSlot *slot)
 			"SLOT_NAME", slot->name,
 			"SLOT_BOOTNAME", slot->bootname ?: "",
 			"BUNDLE_HASH", slot->status->bundle_hash ?: "",
-			"MESSAGE", "Marked slot %s as active", slot->name
-			);
+			"MESSAGE", "Marked slot %s as active", slot->name);
 }
 
 static void r_event_log_mark_good(RaucSlot *slot)
@@ -112,8 +111,7 @@ static void r_event_log_mark_good(RaucSlot *slot)
 			"MESSAGE_ID", MESSAGE_ID_MARKED_GOOD,
 			"SLOT_NAME", slot->name,
 			"SLOT_BOOTNAME", slot->bootname ?: "",
-			"MESSAGE", "Marked slot %s as good", slot->name
-			);
+			"MESSAGE", "Marked slot %s as good", slot->name);
 }
 
 static void r_event_log_mark_bad(RaucSlot *slot)
@@ -125,8 +123,7 @@ static void r_event_log_mark_bad(RaucSlot *slot)
 			"MESSAGE_ID", MESSAGE_ID_MARKED_BAD,
 			"SLOT_NAME", slot->name,
 			"SLOT_BOOTNAME", slot->bootname ?: "",
-			"MESSAGE", "Marked slot %s as bad", slot->name
-			);
+			"MESSAGE", "Marked slot %s as bad", slot->name);
 }
 
 gboolean r_mark_active(RaucSlot *slot, GError **error)
@@ -141,7 +138,7 @@ gboolean r_mark_active(RaucSlot *slot, GError **error)
 	r_slot_status_load(slot);
 	slot_state = slot->status;
 
-	if (!r_boot_set_primary(slot, &ierror)) {
+	if (!r_boot_set_primary(slot, &ierror))	{
 		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE,
 				"failed to activate slot %s: %s", slot->name, ierror->message);
 		g_error_free(ierror);
@@ -223,18 +220,17 @@ gboolean mark_run(const gchar *state,
 			*message = g_strdup("cannot mark multiple slots as good");
 			return FALSE;
 		}
-		RaucSlot *slot = (RaucSlot*)g_list_first(slots)->data;
+		RaucSlot *slot = (RaucSlot *)g_list_first(slots)->data;
 
 		if (!r_mark_good(slot, &ierror)) {
 			*message = g_strdup(ierror->message);
 			return FALSE;
 		}
 
-		if (r_context()->config->prevent_late_fallback
-		    && g_strcmp0(slot_identifier, "booted") == 0) {
+		if (r_context()->config->prevent_late_fallback && g_strcmp0(slot_identifier, "booted") == 0) {
 			g_autofree gchar *mark_bad_message = NULL;
 
-			if (!mark_run("bad", "other", NULL, &mark_bad_message)) {
+			if (!mark_run("bad", "other", NULL, &mark_bad_message))	{
 				*message = g_strdup(mark_bad_message);
 				return FALSE;
 			}
@@ -242,7 +238,7 @@ gboolean mark_run(const gchar *state,
 	} else if (g_strcmp0(state, "bad") == 0) {
 		for (GList *l = slots; l != NULL; l = l->next) {
 			RaucSlot *slot = l->data;
-			if (!r_mark_bad(slot, &ierror)) {
+			if (!r_mark_bad(slot, &ierror))	{
 				*message = g_strdup(ierror->message);
 				return FALSE;
 			}
@@ -252,7 +248,7 @@ gboolean mark_run(const gchar *state,
 			*message = g_strdup("cannot activate multiple slots");
 			return FALSE;
 		}
-		RaucSlot *slot = (RaucSlot*)g_list_first(slots)->data;
+		RaucSlot *slot = (RaucSlot *)g_list_first(slots)->data;
 
 		if (!r_mark_active(slot, &ierror)) {
 			*message = g_strdup(ierror->message);
