@@ -20,6 +20,8 @@ typedef enum {
 	R_INSTALL_ERROR_MARK_NONBOOTABLE,
 	R_INSTALL_ERROR_TARGET_GROUP,
 	R_INSTALL_ERROR_MOUNTED,
+	// TODO[lsc]: not sure with the placment in "install"
+	R_INSTALL_ERROR_LOCK_SLOT
 } RInstallError;
 
 typedef struct {
