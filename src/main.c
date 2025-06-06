@@ -1371,6 +1371,7 @@ typedef struct {
 	gchar *bootslot;
 	GHashTable *slots;
 	GVariant *artifacts;
+	gboolean is_locked;
 } RaucStatusPrint;
 
 static void free_status_print(RaucStatusPrint *status)
@@ -2180,6 +2181,9 @@ static gboolean status_start(int argc, char **argv)
 			return TRUE;
 		}
 	}
+
+	// TODO[lsc]: properly implelemt this
+	status_print->is_locked = r_boot_get_global_slot_locking(&ierror);
 
 	if (argc < 3) {
 		if (!print_status(status_print)) {
