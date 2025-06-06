@@ -46,6 +46,7 @@ static void bootchooser_barebox(BootchooserFixture *fixture,
 compatible=FooCorp Super BarBazzer\n\
 bootloader=barebox\n\
 mountprefix=/mnt/myrauc/\n\
+lock-good-slot=true\n\
 \n\
 [keyring]\n\
 path=/etc/rauc/keyring/\n\
@@ -93,7 +94,9 @@ bootstate.system1.priority=10\n\
 	g_assert_nonnull(primary);
 	g_assert(primary == rootfs0);
 	g_assert(primary != rootfs1);
-
+	/* check boot slot locking */
+	g_assert_true(r_boot_set_global_slot_locking(TRUE, NULL));
+	g_assert_true(r_boot_get_global_slot_locking(NULL));
 	/* check rootfs.0 is considered bad (remaining_attempts = 0) */
 	g_assert_true(g_setenv("BAREBOX_STATE_VARS_PRE", " \
 bootstate.system0.remaining_attempts=0\n\
@@ -274,7 +277,7 @@ static void bootchooser_barebox_conf_attempts(BootchooserFixture *fixture,
 	RaucSlot *rootfs0 = NULL;
 	GError *error = NULL;
 	gboolean res;
-
+	// TODO[lsc]: add test here
 	const gchar *cfg_file = "\
 [system]\n\
 compatible=FooCorp Super BarBazzer\n\
@@ -640,6 +643,7 @@ static void bootchooser_uboot(BootchooserFixture *fixture,
 compatible=FooCorp Super BarBazzer\n\
 bootloader=uboot\n\
 mountprefix=/mnt/myrauc/\n\
+lock-good-slot=true\n\
 \n\
 [keyring]\n\
 path=/etc/rauc/keyring/\n\
@@ -715,6 +719,10 @@ BOOT_B_LEFT=3\n\
 	g_assert_true(good);
 	g_assert_true(r_boot_get_state(rootfs1, &good, NULL));
 	g_assert_true(good);
+
+	/* check boot slot locking (currently only implemented for barebox)*/
+	g_assert_false(r_boot_set_global_slot_locking(TRUE, NULL));
+	g_assert_false(r_boot_get_global_slot_locking(NULL));
 
 	/* check rootfs.0 is marked bad (BOOT_A_LEFT set to 0) */
 	g_assert_true(r_boot_set_state(rootfs0, FALSE, NULL));
@@ -925,6 +933,7 @@ static void bootchooser_efi(BootchooserFixture *fixture,
 compatible=FooCorp Super BarBazzer\n\
 bootloader=efi\n\
 mountprefix=/mnt/myrauc/\n\
+lock-good-slot=true\n\
 \n\
 [keyring]\n\
 path=/etc/rauc/keyring/\n\
@@ -962,6 +971,10 @@ bootname=system1\n";
 
 	g_assert_true(r_boot_set_state(slot, FALSE, NULL));
 	g_assert_true(r_boot_set_state(slot, TRUE, NULL));
+
+	/* check boot^ slot locking */
+	g_assert_false(r_boot_set_global_slot_locking(TRUE, NULL));
+	g_assert_false(r_boot_get_global_slot_locking(NULL));
 
 	slot = find_config_slot_by_name(r_context()->config, "rootfs.1");
 	g_assert_nonnull(slot);
@@ -1023,6 +1036,7 @@ static void bootchooser_custom(BootchooserFixture *fixture,
 compatible=FooCorp Super BarBazzer\n\
 bootloader=custom\n\
 mountprefix=/mnt/myrauc/\n\
+lock-good-slot=true\n\
 \n\
 [handlers]\n\
 bootloader-custom-backend=custom-bootloader-script\n\
@@ -1178,6 +1192,10 @@ PRIMARY=A\n\
 STATE_A=good\n\
 STATE_B=good\n\
 "));
+
+	/* check boot slot locking */
+	g_assert_false(r_boot_set_global_slot_locking(TRUE, NULL));
+	g_assert_false(r_boot_get_global_slot_locking(NULL));
 
 	/* check none is considered primary if both are bad */
 	test_custom_initialize_state(fixture, "\

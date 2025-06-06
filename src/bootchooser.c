@@ -155,6 +155,47 @@ gboolean r_boot_set_state(RaucSlot *slot, gboolean good, GError **error)
 	return res;
 }
 
+// lsc[TODO]: r_boot_set_locked
+// globally for all slots, not separately
+// mark good activates locking, mark active deactivates it
+//     [.] lsc: add lock information to RAUC's status output
+//	so add option to get lock status from barebox here
+
+gboolean r_boot_set_global_slot_locking(gboolean locked, GError **error) {
+
+	gboolean res = FALSE;
+	GError *ierror = NULL;
+	if (g_strcmp0(r_context()->config->system_bootloader, "barebox") == 0) {
+		res = r_barebox_set_global_slot_locking(locked, &ierror);
+	} else {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_NOT_SUPPORTED,
+				"Using boot slot locking for bootloader '%s' not supported yet", r_context()->config->system_bootloader);
+		return NULL;
+	}
+
+	return res;
+}
+
+gboolean r_boot_get_global_slot_locking(GError **error) {
+	gboolean is_locked = FALSE;
+	GError *ierror = NULL;
+	if (g_strcmp0(r_context()->config->system_bootloader, "barebox") == 0) {
+		is_locked = r_barebox_get_global_slot_locking(&ierror);
+	} else {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_NOT_SUPPORTED,
+				"Using boot slot locking for bootloader '%s' not supported yet", r_context()->config->system_bootloader);
+		return NULL;
+	}
+	return is_locked;
+}
+
+
 /* Get slot marked as primary one */
 RaucSlot *r_boot_get_primary(GError **error)
 {

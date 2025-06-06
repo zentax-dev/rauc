@@ -55,6 +55,11 @@ G_GNUC_WARN_UNUSED_RESULT;
 gboolean r_boot_set_state(RaucSlot *slot, gboolean good, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
+gboolean r_boot_set_global_slot_locking(gboolean locked, GError **error);
+
+gboolean r_boot_get_global_slot_locking(GError **error);
+
+
 /**
  * Mark slot as primary boot option of its slot class.
  *
