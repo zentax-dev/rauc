@@ -120,7 +120,13 @@ static gboolean barebox_state_get(const gchar *bootname, BareboxSlotState *bb_st
 	return TRUE;
 }
 
-/* names: list of gchar, values: list of gint */
+/**
+ * @brief This function forwards a list of key->value pairs to barebox
+ *
+ * @param pairs GPtrArray of key: list of gchar -> value: list of gint
+ * @param error	Error to propagate to the calling function
+ * @return TRUE in case of success, FALSE in case of failure
+ */
 static gboolean barebox_state_set(GPtrArray *pairs, GError **error)
 {
 	g_autoptr(GSubprocess) sub = NULL;
@@ -197,6 +203,96 @@ gboolean r_barebox_set_state(RaucSlot *slot, gboolean good, GError **error)
 	}
 
 	return TRUE;
+}
+
+gboolean r_barebox_set_global_slot_locking(gboolean locked, GError **error)
+{
+	g_autoptr(GPtrArray) pairs = g_ptr_array_new_full(1, g_free);
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	g_ptr_array_add(pairs, g_strdup_printf(BOOTSTATE_PREFIX ".locked=%i",
+			locked ? 1 : 0));
+
+	if (!barebox_state_set(pairs, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+gboolean r_barebox_get_global_slot_locking(GError **error)
+{
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!r_context()->config->lock_good_slot) {
+		return FALSE; /* Not supported */
+	}
+
+	g_autoptr(GPtrArray) args = g_ptr_array_new_full(6, g_free);
+	g_ptr_array_add(args, g_strdup(BAREBOX_STATE_NAME));
+	g_ptr_array_add(args, g_strdup("-g"));
+	g_ptr_array_add(args, g_strdup_printf(BOOTSTATE_PREFIX ".locked")); // RENAME
+	g_ptr_array_add(args, NULL);
+
+	g_autoptr(GSubprocess) sub = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_STDOUT_PIPE, &ierror);
+	if (!sub) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to start " BAREBOX_STATE_NAME ": ");
+		return FALSE;
+	}
+
+	GInputStream *instream = g_subprocess_get_stdout_pipe(sub);
+	g_autoptr(GDataInputStream) datainstream = g_data_input_stream_new(instream);
+
+	g_autofree gchar *outline = g_data_input_stream_read_line(datainstream, NULL, NULL, &ierror);
+	if (!outline) {
+		/* Having no error set means no content to read */
+		if (ierror == NULL) {
+			/* Treat missing value as "not locked" */
+			return FALSE;
+		} else {
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"Failed parsing " BAREBOX_STATE_NAME " output: ");
+			return FALSE;
+		}
+	}
+
+	gchar *endptr = NULL;
+	guint64 lock_value = g_ascii_strtoull(outline, &endptr, 10);
+	if (lock_value == 0 && outline == endptr) {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_PARSE_FAILED,
+				"Failed to parse value: '%s'", outline);
+		return FALSE;
+	} else if (lock_value == G_MAXUINT64 && errno != 0) {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_PARSE_FAILED,
+				"Return value overflow: '%s', error: %d", outline, errno);
+		return FALSE;
+	}
+
+	if (!g_subprocess_wait_check(sub, NULL, &ierror)) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to run " BAREBOX_STATE_NAME ": ");
+		return FALSE;
+	}
+
+	return lock_value != 0;
 }
 
 /* Get slot marked as primary one */
