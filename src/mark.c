@@ -1,6 +1,8 @@
 #include "bootchooser.h"
+#include "config_file.h"
 #include "event_log.h"
 #include "context.h"
+#include "glib.h"
 #include "install.h"
 #include "mark.h"
 #include "slot.h"
@@ -141,6 +143,13 @@ gboolean r_mark_active(RaucSlot *slot, GError **error)
 	r_slot_status_load(slot);
 	slot_state = slot->status;
 
+	if (r_context()->config->prevent_late_fallback == R_CONFIG_FALLBACK_LOCK_COUNTER) {
+		if (!r_boot_set_counters_lock(FALSE, &ierror)) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
+	}
+
 	if (!r_boot_set_primary(slot, &ierror)) {
 		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE,
 				"failed to activate slot %s: %s", slot->name, ierror->message);
@@ -154,7 +163,6 @@ gboolean r_mark_active(RaucSlot *slot, GError **error)
 	now = g_date_time_new_now_utc();
 	slot_state->activated_timestamp = g_date_time_format(now, "%Y-%m-%dT%H:%M:%SZ");
 	slot_state->activated_count++;
-
 	if (!r_slot_status_save(slot, &ierror)) {
 		g_message("Error while writing status file: %s", ierror->message);
 		g_error_free(ierror);
@@ -175,6 +183,13 @@ gboolean r_mark_good(RaucSlot *slot, GError **error)
 				"Failed marking slot %s as good:  %s", slot->name, ierror->message);
 		g_error_free(ierror);
 		return FALSE;
+	}
+
+	if (r_context()->config->prevent_late_fallback == R_CONFIG_FALLBACK_LOCK_COUNTER) {
+		if (!r_boot_set_counters_lock(TRUE, &ierror)) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
 	}
 
 	r_event_log_mark_good(slot);
@@ -230,7 +245,7 @@ gboolean mark_run(const gchar *state,
 			return FALSE;
 		}
 
-		if (r_context()->config->prevent_late_fallback
+		if (r_context()->config->prevent_late_fallback == R_CONFIG_FALLBACK_MARK_BAD
 		    && g_strcmp0(slot_identifier, "booted") == 0) {
 			g_autofree gchar *mark_bad_message = NULL;
 
