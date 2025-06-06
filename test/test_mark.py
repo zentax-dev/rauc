@@ -1,8 +1,7 @@
 import json
 
 from conftest import have_grub, no_service
-from helper import run
-from helper import slot_data_from_json
+from helper import run, slot_data_from_json
 
 
 @no_service

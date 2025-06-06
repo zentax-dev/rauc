@@ -25,3 +25,10 @@ app.info
 *.trs
 *.xz
 *.zip
+.venv
+test/empty.dat
+test/global.raucs
+test/random.dat
+test/savedmanifest.raucm
+test/savedslot.raucs
+test/rauc-data-dir/central.raucs
