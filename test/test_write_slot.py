@@ -42,7 +42,7 @@ def test_write_slot_no_handler(tmp_path, rauc_no_service):
 
     out, err, exitcode = run(f"{rauc_no_service} write-slot rootfs.0 {tmp_path}/image.xyz")
     assert exitcode == 1
-    assert f"Unsupported image {tmp_path}/image.xyz for slot type ext4" in err
+    assert f"Unable to map filename '{tmp_path}/image.xyz' extension to type" in err
 
 
 @needs_emmc
