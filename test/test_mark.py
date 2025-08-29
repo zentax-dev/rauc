@@ -62,6 +62,34 @@ def test_status_mark_good_non_bootslot(rauc_no_service):
     assert exitcode == 1
 
 
+@no_service
+@have_grub
+def test_status_mark_active_prevent_late_fallback_lock_counter(system, rauc_no_service):
+    """The prevent-late-fallback = "lock-counter" option is only supported for barebox"""
+    system.prepare_abc_config()
+    system.config["system"]["prevent-late-fallback"] = "lock-counter"
+    system.write_config()
+
+    # Mark other slot as active - this should fail for GRUB as lock-counter is not supported
+    out, err, exitcode = run(f"{rauc_no_service} --override-boot-slot=A status mark-active other")
+    assert exitcode == 1
+    assert "NOT_SUPPORTED" in err or "not supported" in err.lower()
+
+
+@no_service
+@have_grub
+def test_status_mark_good_prevent_late_fallback_lock_counter(system, rauc_no_service):
+    """The prevent-late-fallback = "lock-counter" option is only supported for barebox"""
+    system.prepare_abc_config()
+    system.config["system"]["prevent-late-fallback"] = "lock-counter"
+    system.write_config()
+
+    # Mark other slot as active - this should fail for GRUB as lock-counter is not supported
+    out, err, exitcode = run(f"{rauc_no_service} --override-boot-slot=A status mark-good other")
+    assert exitcode == 1
+    assert "NOT_SUPPORTED" in err or "not supported" in err.lower()
+
+
 @have_grub
 def test_status_mark_bad_other(rauc_dbus_service_with_system_abc):
     out, err, exitcode = run("rauc status --output-format=json")
